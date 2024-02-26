@@ -1,0 +1,281 @@
+{% extends 'assistant/base.html' %}
+{% block title %} Home {% endblock %}
+{% block content %}
+{% load static %}
+<div class="header">
+</div>
+<div class="main-content">
+  <div class="main-overview">
+      <div class="assistant">
+        <div class="message-header">
+          <div>
+            <img src="{% static "img/black_logo.png" %}" class="width-80 black_logo" alt="header.png"/>
+          </div>
+          <p class="overview-title">Black Rhino Content Generator</p>
+          <form action="." method="POST" id="form1">
+            <div class="d-flex align-items-center">
+              <div class="overview-select-language">
+                <select class="form-control" id="ov_searchtype_id" name="ov_searchtype" required>
+                  <option value="Topic" {% if ov_searchtype == "Topic"%}selected{% endif %}>Topic</option> 
+                  <option value="Date" {% if ov_searchtype == "Date" %}selected{% endif %}>Date</option>
+                </select>
+                </ul>
+              </div>
+              <div class="input-title pl-1">
+                <input id="ov_keyword_id" placeholder="Enter search key" class="title-show pl-2" rows="1" maxlength="300" autocomplete="off" type="text" value="{{ ov_keyword }}"/>
+              </div>
+              <button id="btn_filter" type="submit" name="btn_filter">
+                <img src="{% static "img/filter.png" %}" class="width-filter p-2" alt="header.png"/>
+              </button>
+              <button id="btn_clear" type="submit" name="btn_clear">
+                <img src="{% static "img/back.png" %}" class="width-filter p-2" alt="header.png"/>
+              </button>
+              <button id="btn_generate">
+                <img src="{% static "img/generate.png" %}" class="width-filter p-2" alt="header.png"/>
+              </button>
+            </div>
+          </form>
+        </div>
+        <form action="." method="POST" id="form2">
+          <!-- this secures the form from malicious attacks during submission -->
+          {% csrf_token %}
+          <input type="hidden" id="language-input" name="language" value="">
+          <div class="overviewlist">
+            <div class="chat-history">
+              <table class="w-100">
+                <thead>
+                  <tr>
+                    <th class="width-25 pl-5">Article title</th>  
+                    <th class="width-25">Topic</th>
+                    <th class="width-15">
+                      Date created
+                      <input id="ov_sort_id" placeholder=""  type="hidden" value="{{ ov_sort }}"/>
+                      <button id="btn_sort" type="submit" name="btn_sort">
+                        <img src="{% static "img/sort.png" %}" class="width-sort" alt="header.png"/>
+                      </button>
+                    </th>
+                    <th class="width-10">Word count</th>
+                    <th class="width-8 text-center">Copy</th>
+                    <th class="width-8 text-center">Delete</th>
+                    <th class="width-8 text-center">Download</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in table_array %}
+                    <tr id="{{ row.id }}">
+                      <td class="width-25 pl-5">{{ row.title }}</td>
+                      <td class="width-25">{{ row.topic }}</td>
+                      <td class="width-15">{{ row.created_at }}</td>
+                      <td class="width-10">{{ row.word_count }}</td>
+                      <td class="width-8 text-center" id="btn_rowcopy" onclick="onRowCopy( '{{ row.id }}' )"><img src="{% static "img/copy.png" %}" class="copyimg" alt="header.png"/></td>
+                      <td class="width-8 text-center" id="btn_rowdelete" onclick="onRowDelete( '{{ row.id }}' )"><img src="{% static "img/delete.png" %}" class="deleteimg" alt="delete.png"/></td>
+                      <td class="width-8 text-center" id="btn_rowdownload" onclick="onRowDownload( '{{ row.id }}' )"><img src="{% static "img/download.png" %}" class="downloadimg" alt="download.png"/></td>
+                      <td class="width-8" id="content{{ row.id }}" hidden>{{ row.content }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </form>
+      </div>
+  </div>
+</div>
+<div class="footer">
+</div>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+
+    var filterButton = document.getElementById('btn_filter')
+    var clearButton = document.getElementById('btn_clear')
+    var copyButton = document.getElementById('btn_rowcopy')
+    var sortButton = document.getElementById('btn_sort')
+    var generateButton = document.getElementById('btn_generate')
+    var form1 = document.getElementById('form1')
+    var form2 = document.getElementById('form2')
+    
+    var inputEnterEvent = document.getElementById('ov_keyword_id')
+    inputEnterEvent.focus()
+
+    function onFormSumbit (formElement, sortFlag = false) {
+      var selectedSort = document.getElementById('ov_sort_id').value
+      var selectedSearchType = document.getElementById('ov_searchtype_id').value
+      var selectedKeyword = document.getElementById('ov_keyword_id').value
+      console.log("forms_submit:", selectedSort, selectedSearchType, selectedKeyword)
+      //sort element
+      var sortElement = document.createElement("input");
+      sortElement.type = "hidden";
+      sortElement.name = "ov_sort"
+      if(sortFlag == true){
+        sortElement.value = -parseInt(selectedSort);
+      } else{
+        sortElement.value = parseInt(selectedSort);
+      }
+      formElement.appendChild(sortElement);
+      
+      //searchtype element
+      var searchtypeElement = document.createElement("input");
+      searchtypeElement.type = "hidden";
+      searchtypeElement.name = "ov_searchtype"
+      searchtypeElement.value = selectedSearchType;
+      formElement.appendChild(searchtypeElement);
+      
+      //keyword element
+      var keywordElement = document.createElement("input");
+      keywordElement.type = "hidden";
+      keywordElement.name = "ov_keyword"
+      keywordElement.value = selectedKeyword;
+      formElement.appendChild(keywordElement);
+      console.log("------formElement submit event------", selectedSort)
+
+      //event.preventDefault()
+      formElement.submit()
+    }
+
+    inputEnterEvent.addEventListener('keydown', function(event) {
+      if(event.keyCode === 13){
+        onFormSumbit(form1)
+      }
+    })
+
+    form1.addEventListener('submit', function(event) {
+      var clickButton = event.submitter
+      console.log("------form1 submit event------", keywordInput, clickButton.name)
+      if(clickButton.name == "btn_filter"){
+        onFormSumbit(form1)
+      }
+
+      if(clickButton.name == "btn_clear") {
+        var keywordInput = document.getElementById('ov_keyword_id')
+        keywordInput.value = ""
+        onFormSumbit(form1)
+      }
+    })
+    
+    form2.addEventListener('submit', function(event) {
+      onFormSumbit(form2, true)
+    })
+
+    generateButton.addEventListener("click", function(event){
+      event.preventDefault();
+      window.location.href = "/home"
+    })
+    
+  })
+  
+  {% comment %} function onRowCopy(rowId){
+    var rowContent = document.getElementById(`content${rowId}`).textContent
+    navigator.clipboard.writeText(rowContent)
+      .then(function () {
+        console.log("Text copied to clipboard:", rowId, rowContent)
+      })
+      .catch(function(error) {
+        console.error("Failed to copy text to clipboard:", rowId, rowContent)
+      })
+    
+  } {% endcomment %}
+
+  function onRowCopy(rowId) {
+    var rowContent = document.getElementById(`content${rowId}`).textContent;
+    
+    // Create a temporary textarea element
+    var textarea = document.createElement('textarea');
+    textarea.value = rowContent;
+    document.body.appendChild(textarea);
+    
+    // Copy the text from the textarea
+    textarea.select();
+    document.execCommand('copy');
+    
+    // Remove the temporary textarea element
+    document.body.removeChild(textarea);
+    
+    console.log("Text copied to clipboard:", rowId, rowContent);
+  }
+  
+  function onRowDelete(deleteId){
+    var formElement = document.getElementById('form2')
+    var selectedSort = document.getElementById('ov_sort_id').value
+    var selectedSearchType = document.getElementById('ov_searchtype_id').value
+    var selectedKeyword = document.getElementById('ov_keyword_id').value
+    console.log("forms_submit:", selectedSort, selectedSearchType, selectedKeyword)
+    //sort element
+    var sortElement = document.createElement("input");
+    sortElement.type = "hidden";
+    sortElement.name = "ov_sort"
+    sortElement.value = parseInt(selectedSort);
+    formElement.appendChild(sortElement);
+    
+    //searchtype element
+    var searchtypeElement = document.createElement("input");
+    searchtypeElement.type = "hidden";
+    searchtypeElement.name = "ov_searchtype"
+    searchtypeElement.value = selectedSearchType;
+    formElement.appendChild(searchtypeElement);
+    
+    //keyword element
+    var keywordElement = document.createElement("input");
+    keywordElement.type = "hidden";
+    keywordElement.name = "ov_keyword"
+    keywordElement.value = selectedKeyword;
+    formElement.appendChild(keywordElement);
+
+    //delete element
+    var deleteElement = document.createElement("input");
+    deleteElement.type = "hidden";
+    deleteElement.name = "ov_delete_id"
+    deleteElement.value = deleteId;
+    formElement.appendChild(deleteElement);
+
+    console.log("------formElement submit event------", selectedSort)
+
+    //event.preventDefault()
+    if (window.confirm('Are you sure you want to delete?')) {
+      // User clicked "OK" (Yes) button
+      console.log('User clicked "OK"');
+      formElement.submit()
+    } else {
+      // User clicked "Cancel" (No) button
+      console.log('User clicked "Cancel"');
+    }
+  }
+
+  function saveTextToFile(text, filename) {
+    // Create a Blob object from the text content
+    const blob = new Blob([text], { type: "text/plain" });
+
+    // Create a data URL from the Blob
+    const dataUrl = URL.createObjectURL(blob);
+
+    // Create a temporary anchor element
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = filename;
+
+    // Append the anchor element to the document body
+    document.body.appendChild(link);
+
+    // Trigger a click event on the anchor element
+    link.click();
+
+    // Clean up the temporary anchor element
+    document.body.removeChild(link);
+    URL.revokeObjectURL(dataUrl);
+  }
+
+  function onRowDownload(rowId) {
+    var textContents = document.getElementById(`content${rowId}`).textContent
+    console.log("textContents:", textContents)
+    const filename = "content.txt";
+    //event.preventDefault()
+    if (window.confirm('Are you sure you want to download?')) {
+      // User clicked "OK" (Yes) button
+      console.log('User clicked "OK"');
+      saveTextToFile(textContents, filename);
+    } else {
+      // User clicked "Cancel" (No) button
+      console.log('User clicked "Cancel"');
+    }
+  }
+</script>
+{% endblock %}

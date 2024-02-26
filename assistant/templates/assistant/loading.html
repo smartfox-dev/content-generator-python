@@ -1,0 +1,23 @@
+{% extends 'assistant/base.html' %}
+{% block title %} Home {% endblock %}
+{% block content %}
+{% load static %}
+<div class="header">
+</div>
+<div class="main-content">
+  <div class="main-overview global-fade-in">
+    <img src="{% static "img/white_logo.png" %}" class="loading-image" alt="whtie_logo.png"/>
+  </div>
+</div>
+<div class="footer">
+</div>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    console.log("First settimeout")
+    setTimeout(function() {
+      console.log("Second settimeout")
+      window.location.href = "/overview"
+    }, 2500);
+  })
+</script>
+{% endblock %}

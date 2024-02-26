@@ -1,0 +1,5 @@
+developer_token: insert here the token from Google Ads API center
+client_id: can be obtained in the secrets JSON file
+client_secret: can be obtained in the secrets JSON file
+refresh_token: this is the token obtained previously
+use_proto_plus: True

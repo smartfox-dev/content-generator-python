@@ -1,0 +1,214 @@
+{% extends 'assistant/base.html' %}
+{% block title %} Home {% endblock %}
+{% block content %}
+{% load static %}
+<div class="header">
+</div>
+<div class="content">
+  <div class="main">
+      <div class="assistant">
+        <div class="message-header">
+          <div id="btn_goback">
+            <img src="{% static "img/goback.png" %}" class="width-filter" alt="goback.png"/>
+          </div>
+          <div class="new-chat-btn">
+            <button type="button" class="btn-primary-user" onclick="location.href='{% url 'new_chat' %}'">New Content +</button>
+          </div>
+        </div>
+        <form action="/home/" method="POST" id="form1">
+          <!-- this secures the form from malicious attacks during submission -->
+          {% csrf_token %}
+          <input type="hidden" id="language-input" name="language" value="">
+          <div class="message-box">
+            <div class="messages">
+              <div class="message sender">
+                <p class="opening">{{ "Assistant: What is your topic?" }}</p>
+                {% comment %} <p class="opening">{{ "Assistent: Wat is je onderwerp?" }}</p> {% endcomment %}
+              </div>
+              <div class="chat-history">
+                {% if messages %}
+                    {% for message in messages %}
+                      {% if message.role == 'assistant' and message.content != "" %}
+                        <div class="message sender">
+                          <p>{% autoescape off %}{{ message.content|linebreaks }}{% endautoescape %}</p>
+                        </div>
+                      {% endif %}
+                      {% if message.role == 'user' and message.content != "" %}
+                        <div class="message receiver">
+                          <p>{% autoescape off %}{{ message.content|linebreaks }}{% endautoescape %}</p>
+                        </div>
+                      {% endif %}
+                    {% endfor %}
+                {% endif %}
+              </div>
+            </div>
+            <div class="msg-input-field">
+              <input class="form-control pl-2" type="text" name="input" autofocus="autofocus" value="{{ input }}" id="input" required>
+              <button class="btn btn-success fw-bold" type="submit">
+                GENERATE
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="result">
+        <div class="result-header">
+          <p class="message-title">Result</p>
+        </div>
+        <div class="result-output">
+          <p>{{ article|linebreaks }}</p>
+        </div>
+        <button id="btn_export" class="btn-primary-user btn-export">Export</button>
+      </div>
+  </div>
+   <div class="left">
+    <form action="/generate/" method="POST">
+      {% csrf_token %}
+      <div class="language">
+        <label class="language-select">Language</label>
+        <div class="select-language">
+          <select class="form-control" id="language" name="language" required>
+            <option value="Dutch" {% if language == "Dutch"%}selected{% endif %}>Dutch</option> 
+            <option value="English" {% if language == "English" %}selected{% endif %}>English</option>
+          </select>
+          </ul>
+        </div>
+      </div>
+      <div class="left-bar-item">
+        <label class="title-select">Topic</label>
+        <div class="input-title">
+          <input id="topic" class="title-show pl-2" rows="1" maxlength="300" autocomplete="off" type="text" value="{% if index > 0 %}{{ topic }}{% endif %}" required/>
+        </div>
+      </div>
+      <div class="left-bar-item">
+        <label class="title-select">Title</label>
+        <div class="input-title">
+          <input id="title" class="title-show pl-2" rows="1" maxlength="300" autocomplete="off" type="text"
+          value="{% if index > 1 %}{{ title }}{% endif %}" required/>
+        </div>
+      </div>
+      <div class="left-bar-item">
+        <label class="title-select">Keyword</label>
+        <div class="input-title">
+          <input class="title-show pl-2" rows="1" maxlength="300" autocomplete="off" type="text"
+          value="{%if index > 2  %}{{ keyword }}{% endif %}" required/>
+        </div>
+      </div>
+      <div class="left-bar-item">
+        <label class="language-select">Scientific articles to scrape</label>
+        <div class="select-language">
+          <select class="form-control" id="sciamount" name="sciamount">
+            <option selected disabled>Select Amount</option>
+            <option value="0">None</option>
+            <option value="1">Low</option>
+            <option value="3">Medium</option>
+            <option value="5">High</option>
+          </select>
+        </div>
+        <div class="input_url_group" id="input_url_group">
+          {% comment %} <div class="input_url">
+            <input class="title-show pl-2" rows="1" autocomplete="off" type="text" value="" name="input_url" id="input_url1"/>
+          </div> {% endcomment %}
+        </div>
+      </div>
+      <div class="left-bar-item">
+        <label class="title-select">Words: (MAX: 2000)</label>
+        <div class="input-title">
+          <input class="title-show pl-2" id="word_count" name="word_count" placeholder="Word count" rows="1" min="100" max="2000" autocomplete="off" type="number" value="{{ word_count }}" required/>
+        </div>
+      </div>
+      <div class="left-bar-item div-genbutton">
+        <button class="btn btn-primary" type="submit">Generate Text<span class="styles_rippleSpan__M7thf"></span></button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="footer">
+</div>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+  var selectAmount = document.getElementById("sciamount");
+  var inputContainer = document.getElementById("input_url_group");
+  var exportButton = document.getElementById("btn_export");
+  var gobackButton = document.getElementById('btn_goback')
+  var paragraph = document.getElementById("article");
+  var form1 = document.getElementById("form1")
+
+  form1.addEventListener('submit', function(event) {
+    var selectedLanguage = document.getElementById('language').value
+    var selectedTopic = document.getElementById('topic').value
+    console.log("submit_form1:", selectedLanguage)
+    var additionLanguage = document.createElement("input");
+    additionLanguage.type = "hidden";
+    additionLanguage.name = "language"
+    additionLanguage.value = selectedLanguage;
+    form1.appendChild(additionLanguage);
+    
+    var additionTopic = document.createElement("input");
+    additionTopic.type = "hidden";
+    additionTopic.name = "topic"
+    additionTopic.value = selectedTopic;
+    form1.appendChild(additionTopic);
+
+    form1.submit();
+  })
+
+  function saveTextToFile(text, filename) {
+    // Create a Blob object from the text content
+    const blob = new Blob([text], { type: "text/plain" });
+
+    // Create a data URL from the Blob
+    const dataUrl = URL.createObjectURL(blob);
+
+    // Create a temporary anchor element
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = filename;
+
+    // Append the anchor element to the document body
+    document.body.appendChild(link);
+
+    // Trigger a click event on the anchor element
+    link.click();
+
+    // Clean up the temporary anchor element
+    document.body.removeChild(link);
+    URL.revokeObjectURL(dataUrl);
+  }
+ 
+  exportButton.addEventListener("click", function(event) {
+   var paragraphs = document.querySelectorAll('.result-output p');
+
+    // Iterate through each <p> element and retrieve its text content
+    var textContents = '';
+    paragraphs.forEach((paragraph) => {
+      var textContent = paragraph.innerText;
+      textContents += "\n" + textContent ;
+    });
+    console.log("textContents:", textContents)
+    const filename = "content.txt";
+    saveTextToFile(textContents, filename);
+  })
+
+  selectAmount.addEventListener("change", function () {
+    var selectedValue = selectAmount.value;
+    console.log("selected_input_value:", selectedValue);
+    // Clear existing input elements
+    inputContainer.innerHTML = "";
+
+    // Generate new input elements based on selected value
+    for (var i = 0; i < selectedValue; i++) {
+      let input = document.createElement("div");
+      input.className = "input_url";
+      input.innerHTML = `<input class="title-show pl-2" rows="1" autocomplete="off" type="text" value="" name="input_url" id="input_url${i}"/>`;
+      inputContainer.appendChild(input);
+    }
+  });
+
+  gobackButton.addEventListener("click", function () {
+    window.location.href = "/"
+  })
+});
+</script>
+{% endblock %}
+
